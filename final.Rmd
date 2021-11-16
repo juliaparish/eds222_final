@@ -1,0 +1,31 @@
+---
+title: "final"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+```{r}
+
+NMFS_transect <- read_csv(here("data", "table_257.csv")) %>% 
+  clean_names()
+
+NMFS_obs <- read_csv(here("data", "table_258.csv")) %>% 
+  clean_names()
+  
+```
+
+```{r}
+nmfs_data <- NMFS_obs %>%
+  inner_join(NMFS_transect, by = "gis_key")
+
+```
+
