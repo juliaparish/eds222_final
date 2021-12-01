@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 library(janitor)
+library(lubridate)
 ```
 
 ```{r}
@@ -28,4 +29,55 @@ nmfs_data <- NMFS_obs %>%
   inner_join(NMFS_transect, by = "gis_key")
 
 ```
+
+```{r}
+write.csv(nmfs_data, "C:\\Users\\julia\\Documents\\_MEDS\\EDS222_Stats_Carleton\\Assignments\\final_project\\eds222_final", row.names = FALSE)
+
+```
+
+```{r}
+cruise_info <- unique(nmfs_data$cruise)
+cruise_info
+
+species_info <- unique(nmfs_data$species)
+species_info
+```
+
+```{r}
+dates_info <- unique(nmfs_data$date)
+dates_info
+```
+
+```{r}
+nmfs_data <- nmfs_data %>% 
+  separate(date, sep="-", into = c("year", "month", "day"))
+  
+```
+
+```{r}
+nmfs_data <- nmfs_data %>% 
+  mutate(common_name = "") %>% 
+  filter(species == c("BFAL", "LAAL"))
+```
+
+```{r}
+species_info <- unique(nmfs_data$species)
+species_info
+```
+```{r}
+nmfs_data <- nmfs_data %>% 
+  mutate(common_name = case_when(
+    species == "BFAL" ~ "Blackfooted albatross",
+    species == "LAAL" ~ "Laysan albatross"
+  )
+  )
+```
+
+```{r}
+common_info <- unique(nmfs_data$common_name)
+common_info
+```
+
+
+
 
