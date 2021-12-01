@@ -57,7 +57,8 @@ nmfs_data <- nmfs_data %>%
 ```{r}
 nmfs_data <- nmfs_data %>% 
   mutate(common_name = "") %>% 
-  filter(species == c("BFAL", "LAAL"))
+  filter(species == c("BFAL", "LAAL")) %>% 
+  relocate(common_name, .after = species)
 ```
 
 ```{r}
