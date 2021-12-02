@@ -89,7 +89,8 @@ laal_hi_sf <- st_as_sf(laal_hi_band, coords = c("lon_dd","lat_dd"), crs = 4326)
 ```
 
 ```{r}
-mapview(laal_ca_sf)
+mapview(laal_ca_sf) +
+  mapview(laal_hi_sf)
 
 ```
 
