@@ -12,6 +12,8 @@ library(tidyverse)
 library(here)
 library(janitor)
 library(lubridate)
+library(sf)
+library(mapview)
 ```
 
 ```{r}
@@ -21,6 +23,10 @@ NMFS_transect <- read_csv(here("data", "table_257.csv")) %>%
 
 NMFS_obs <- read_csv(here("data", "table_258.csv")) %>% 
   clean_names()
+
+laal_hi_band <- read_csv(here("data", "laal_hi_bbl2021_bnd_enc.csv")) 
+
+laal_ca_band <- read_csv(here("data", "laal_ca_bbl2021_bnd_enc.csv")) 
   
 ```
 
@@ -33,19 +39,6 @@ nmfs_data <- NMFS_obs %>%
 ```{r}
 write.csv(nmfs_data, "C:\\Users\\julia\\Documents\\_MEDS\\EDS222_Stats_Carleton\\Assignments\\final_project\\eds222_final", row.names = FALSE)
 
-```
-
-```{r}
-cruise_info <- unique(nmfs_data$cruise)
-cruise_info
-
-species_info <- unique(nmfs_data$species)
-species_info
-```
-
-```{r}
-dates_info <- unique(nmfs_data$date)
-dates_info
 ```
 
 ```{r}
@@ -62,10 +55,6 @@ nmfs_data <- nmfs_data %>%
 ```
 
 ```{r}
-species_info <- unique(nmfs_data$species)
-species_info
-```
-```{r}
 nmfs_data <- nmfs_data %>% 
   mutate(common_name = case_when(
     species == "BFAL" ~ "Blackfooted albatross",
@@ -75,9 +64,35 @@ nmfs_data <- nmfs_data %>%
 ```
 
 ```{r}
-common_info <- unique(nmfs_data$common_name)
-common_info
+laal_hi_band <- laal_hi_band %>% 
+  mutate(species = "LAAL") %>% 
+  relocate(species, .after = original_band) %>% 
+  relocate(species_name, .after = species) %>% 
+  relocate(species_scientific_name, .after = species_name) %>% 
+  select(c(-other_bands, -who_obtained_code))
+  
 ```
+
+```{r}
+laal_ca_band <- laal_ca_band %>% 
+  mutate(species = "LAAL") %>% 
+  relocate(species, .after = original_band) %>% 
+  relocate(species_name, .after = species) %>% 
+  relocate(species_scientific_name, .after = species_name) %>% 
+  select(c(-other_bands, -who_obtained_code))
+```
+
+```{r}
+laal_ca_sf <- st_as_sf(laal_ca_band, coords = c("lon_dd","lat_dd"), crs = 4326)
+
+laal_hi_sf <- st_as_sf(laal_hi_band, coords = c("lon_dd","lat_dd"), crs = 4326)
+```
+
+```{r}
+mapview(laal_ca_sf)
+
+```
+
 
 
 
