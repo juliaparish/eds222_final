@@ -7,44 +7,63 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, warning = FALSE}
 library(tidyverse)
 library(here)
 library(janitor)
 library(lubridate)
 library(sf)
 library(mapview)
+library(tmap)
+library(leaflet)
+library(rosm)
+library(prettymapr)
 ```
 
-```{r}
-
+```{r, cruise data}
+# read in cruise data
 NMFS_transect <- read_csv(here("data", "table_257.csv")) %>% 
   clean_names()
 
 NMFS_obs <- read_csv(here("data", "table_258.csv")) %>% 
   clean_names()
+```
 
+```{r, band data}
+# read in banding data
 laal_hi_band <- read_csv(here("data", "laal_hi_bbl2021_bnd_enc.csv")) 
 
 laal_ca_band <- read_csv(here("data", "laal_ca_bbl2021_bnd_enc.csv")) 
-  
+
+albie_all_band <- read_csv(here("data", "laal_bfal_ca_hi_bbl2021.csv")) #both bfal and laal banding data for CA and HI
 ```
 
 ```{r}
+# explore banding data
+# unique(albie_all_band$event_year)
+# head(albie_all_band)
+#unique(albie_all_band$species_name)
+#unique(albie_all_band$event_date)
+#class(albie_all_band$event_date)
+```
+
+```{r}
+#combine cruise observation data 
+
 nmfs_data <- NMFS_obs %>%
   inner_join(NMFS_transect, by = "gis_key")
 
 ```
 
 ```{r}
+# save new nmfs cruise data 
 write.csv(nmfs_data, "C:\\Users\\julia\\Documents\\_MEDS\\EDS222_Stats_Carleton\\Assignments\\final_project\\eds222_final", row.names = FALSE)
-
 ```
 
 ```{r}
 nmfs_data <- nmfs_data %>% 
-  separate(date, sep="-", into = c("year", "month", "day"))
-  
+  mutate(year = year(date)) %>% 
+  relocate(year, .before = date)
 ```
 
 ```{r}
@@ -57,10 +76,11 @@ nmfs_data <- nmfs_data %>%
 ```{r}
 nmfs_data <- nmfs_data %>% 
   mutate(common_name = case_when(
-    species == "BFAL" ~ "Blackfooted albatross",
-    species == "LAAL" ~ "Laysan albatross"
+    species == "BFAL" ~ "Black-footed albatross",
+    species == "LAAL" ~ "Laysan albatross")
   )
-  )
+
+#head(nmfs_data)
 ```
 
 ```{r}
@@ -68,8 +88,10 @@ laal_hi_band <- laal_hi_band %>%
   mutate(species = "LAAL") %>% 
   relocate(species, .after = original_band) %>% 
   relocate(species_name, .after = species) %>% 
-  relocate(species_scientific_name, .after = species_name) %>% 
-  select(c(-other_bands, -who_obtained_code))
+  relocate(species_scientific_name, .after = species_name) %>%
+  mutate(count = "1") %>% 
+  relocate(count, .after = species_scientific_name) #%>% 
+  #select(c(-other_bands, -who_obtained_code))
   
 ```
 
@@ -79,22 +101,90 @@ laal_ca_band <- laal_ca_band %>%
   relocate(species, .after = original_band) %>% 
   relocate(species_name, .after = species) %>% 
   relocate(species_scientific_name, .after = species_name) %>% 
+  mutate(count = "1") %>% 
+  relocate(count, .after = species_scientific_name) %>% 
   select(c(-other_bands, -who_obtained_code))
 ```
 
 ```{r}
-laal_ca_sf <- st_as_sf(laal_ca_band, coords = c("lon_dd","lat_dd"), crs = 4326)
-
-laal_hi_sf <- st_as_sf(laal_hi_band, coords = c("lon_dd","lat_dd"), crs = 4326)
+albie_all_band <- albie_all_band %>% 
+  mutate(species = case_when(
+    species_scientific_name == "Phoebastria immutabilis" ~ "LAAL",
+    species_scientific_name == "Phoebastria nigripes" ~ "BFAL")) %>% 
+  relocate(species, .after = original_band) %>% 
+  relocate(species_name, .after = species) %>% 
+  relocate(species_scientific_name, .after = species_name) %>% 
+  mutate(count = as.numeric("1")) %>% 
+  relocate(count, .after = species_scientific_name) %>% 
+  mutate(event_date = as.Date(event_date, "%m/%d/%y")) %>% 
+  select(c(-other_bands, -who_obtained_code))
+ 
+#mutate(incoming_date_parsed = as.Date(incoming_date, "%m.%d.%y")
 ```
 
 ```{r}
-mapview(laal_ca_sf) +
-  mapview(laal_hi_sf)
+# convert databases to sf element to create geom
+nmfs_sf <- st_as_sf(nmfs_data, 
+                    coords = c("longitude_mid_o","latitude_mid_o"), 
+                    crs = 4326)
+
+laal_ca_sf <- st_as_sf(laal_ca_band, 
+                       coords = c("lon_dd","lat_dd"), 
+                       crs = 4326)
+
+laal_hi_sf <- st_as_sf(laal_hi_band, 
+                       coords = c("lon_dd","lat_dd"), 
+                       crs = 4326)
+
+albie_sf <- st_as_sf(albie_all_band, 
+                       coords = c("lon_dd","lat_dd"), 
+                       crs = 4326)
 
 ```
 
+```{r}
+# bbox_ca <- searchbbox("California")
+# 
+# osm.plot(bbox_ca)
+```
 
+```{r}
+# tmap_mode("view")
+# tm_shape(nmfs_sf) +
+#   tm_dots("species") +
+#   #tm_basemap("Stamen.Terrain") +
+#   bmaps.plot(bbox_ca)
+```
+
+```{r}
+mapview(albie_sf,
+        map.types = c("Stamen.Terrain"),
+        layer.name = "Laysan and Black-footed albatross",
+        col.regions = "#F757E1") 
+  # mapview(nmfs_sf,
+  #         layer.name = "NMFS CA Albatross",
+  #         col.regions = "#F757E1") +
+  # mapview(laal_hi_sf,
+  #         col.regions = "#F9F200")
+
+```
+
+```{r}
+
+nmfs_count <- nmfs_data %>% 
+  group_by(species, date) %>% 
+  summarise(total = sum(count))
+
+```
+
+```{r}
+
+band_count <- albie_all_band %>% 
+  unite("date" = c(event_day, event_month, event_year))
+  #group_by(species, ) %>% 
+  #summarise(total = sum(count))
+
+```
 
 
 
