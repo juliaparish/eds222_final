@@ -26,6 +26,6 @@ vignettes/*.pdf
 *.knit.md
 # R Environment Variables
 .Renviron
-data\
+data
 nmfs_data.csv
 C:\Users\julia\Documents\_MEDS\EDS222_Stats_Carleton\Assignments\final_project\eds222_final
