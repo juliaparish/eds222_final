@@ -57,7 +57,7 @@ nmfs_data <- NMFS_obs %>%
 
 ```{r}
 # save new nmfs cruise data 
-write.csv(nmfs_data, "C:\\Users\\julia\\Documents\\_MEDS\\EDS222_Stats_Carleton\\Assignments\\final_project\\eds222_final", row.names = FALSE)
+write.csv(nmfs_data, file = file.choose(new = T))
 ```
 
 ```{r}
@@ -117,9 +117,9 @@ albie_all_band <- albie_all_band %>%
   mutate(count = as.numeric("1")) %>% 
   relocate(count, .after = species_scientific_name) %>% 
   mutate(event_date = as.Date(event_date, "%m/%d/%y")) %>% 
+  rename(year = event_year) #%>% 
   select(c(-other_bands, -who_obtained_code))
  
-#mutate(incoming_date_parsed = as.Date(incoming_date, "%m.%d.%y")
 ```
 
 ```{r}
@@ -225,13 +225,15 @@ nmfs_plot
 ```{r}
 
 band_count <- albie_all_band %>% 
-  group_by(species, event_year) %>% 
+  group_by(species, year) %>% 
   summarise(total = sum(count))
 
 ```
 
 ```{r}
-band_plot <- ggplot(band_count, aes(x = event_year, y = total, group = species)) +
+#plot banding data
+
+band_plot <- ggplot(band_count, aes(x = year, y = total, group = species)) +
   geom_point(aes(color = species,
                  shape = species)) +
   geom_line(aes(color = species)) +
@@ -245,7 +247,7 @@ band_plot <- ggplot(band_count, aes(x = event_year, y = total, group = species))
   guides(shape = FALSE) +
   annotate("text",
            label = "Tōhoku tsunami",
-           x = 2014.5,
+           x = 2014,
            y = 4700,
            color = "black",
            size = 4) +
@@ -259,5 +261,119 @@ band_plot <- ggplot(band_count, aes(x = event_year, y = total, group = species))
   
 band_plot
 ```
+
+```{r}
+# create two band count dataframes based on species
+bfal_band <- split(band_count, band_count$species)[[1]]
+laal_band <- split(band_count, band_count$species)[[2]]
+```
+
+```{r}
+# explore population data 1996 - 2021
+
+bfal_mean <- round(mean(bfal_band$total), 2)
+bfal_min <- round(min(bfal_band$total), 2)
+bfal_max <- round(max(bfal_band$total), 2)
+
+laal_mean <- round(mean(laal_band$total), 2)
+laal_min <- round(min(laal_band$total), 2)
+laal_max <- round(max(laal_band$total), 2)
+
+```
+
+```{r}
+bfal_qqplot <- ggplot(bfal_band) +
+  geom_qq(aes(sample = total),
+          color = "#9E7E8C",
+          size = 3) +
+  geom_qq_line(aes(sample = total),
+            color = "grey") +
+  xlab("Normal distribution quantiles") +
+  ylab("Sample quantiles") +
+  labs(title = "Black-footed Albatross QQ Plot") +
+  theme_minimal() +
+  theme(line = element_blank(),
+        panel.grid = element_blank(),
+        strip.text = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.position = "none")
+bfal_qqplot  
+  
+```
+
+```{r}
+laal_qqplot <- ggplot(laal_band) +
+  geom_qq(aes(sample = total),
+          color = "#39ACB1",
+          size = 3) +
+  geom_qq_line(aes(sample = total),
+            color = "grey") +
+  xlab("Normal distribution quantiles") +
+  ylab("Sample quantiles") +
+  labs(title = "Laysan Albatross QQ Plot") +
+  theme_minimal() +
+  theme(line = element_blank(),
+        panel.grid = element_blank(),
+        strip.text = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.position = "none")
+laal_qqplot  
+```
+
+```{r}
+# filter species by pre and post tsunami event
+bfal_pre <- bfal_band %>% 
+  filter(year %in% c(2002:2010))
+
+bfal_post <- bfal_band %>% 
+  filter(year %in% c(2011:2020))
+
+laal_pre <- laal_band %>% 
+  filter(year %in% c(2002:2010))
+
+laal_post <- laal_band %>% 
+  filter(year %in% c(2011:2020))
+
+```
+
+```{r}
+# mean population of species pre and post tsunami event
+
+mean_pre_bfal <- round(mean(bfal_pre$total), 2)
+mean_post_bfal <- round(mean(bfal_post$total), 2)
+
+mean_pre_laal <- round(mean(laal_pre$total), 2)
+mean_post_laal <- round(mean(laal_post$total), 2)
+
+```
+
+```{r}
+
+pop_mean <- tibble(species = c("BFAL", "LAAL"),
+                       mean_pre = c(mean_pre_bfal, mean_pre_laal),
+                       mean_post = c(mean_post_bfal, mean_post_laal))
+
+pop_mean_table <- knitr::kable(pop_mean,
+                               col.names = c('Species', 'Pre_Pop_Mean', 'Post_Pop_Mean'),
+                               caption = "Albatross Population Means Pre & Post Tōhoku Tsunami")
+
+pop_mean_table
+```
+
+```{r}
+# save mean population data 
+write.csv(pop_mean, file = file.choose(new = T))
+```
+
+```{r}
+pop_mean_plot <- ggplot(pop_mean,  %>% 
+  
+  
+  
+  
+```
+
 
 
