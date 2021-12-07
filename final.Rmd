@@ -157,15 +157,19 @@ albie_sf <- st_as_sf(albie_all_band,
 ```
 
 ```{r}
-mapview(albie_sf,
-        map.types = c("Stamen.Terrain"),
-        layer.name = "Laysan and Black-footed albatross",
-        col.regions = "#F757E1") 
-  # mapview(nmfs_sf,
-  #         layer.name = "NMFS CA Albatross",
-  #         col.regions = "#F757E1") +
-  # mapview(laal_hi_sf,
-  #         col.regions = "#F9F200")
+nmfs_map <-  mapview(nmfs_sf,
+                      map.types = c("Stamen.Terrain"),
+                      layer.name = "NMFS CA Albatross",
+                      col.regions = "#F757E1")
+
+nmfs_map
+```
+
+```{r}
+# mapview(albie_sf,
+#         map.types = c("Stamen.Terrain"),
+#         layer.name = "Laysan and Black-footed albatross",
+#         col.regions = "#F757E1") 
 
 ```
 
@@ -178,13 +182,82 @@ nmfs_count <- nmfs_data %>%
 ```
 
 ```{r}
+#nmfs_count$year <- nmfs_count$date 
 
-band_count <- albie_all_band %>% 
-  unite("date" = c(event_day, event_month, event_year))
-  #group_by(species, ) %>% 
-  #summarise(total = sum(count))
+nmfs_count_yr <- separate(nmfs_count, col = year, into = c('yr', 'mth', 'day'), sep = '-', convert = TRUE) %>% 
+  select(c(-mth, -day)) %>% 
+  relocate(yr, .before = date) %>% 
+  rename(year = yr) %>% 
+  group_by(species, year) %>% 
+  summarise(total_obs = sum(total))
 
 ```
 
+```{r}
+nmfs_plot <- ggplot(nmfs_count_yr, aes(x = year, y = total_obs, group = species)) +
+  geom_point(aes(color = species,
+                 shape = species)) +
+  geom_line(aes(color = species)) +
+  scale_color_manual(name = "Albatross species",
+                     values = c("#9E7E8C", "#39ACB1"),
+                     labels = c("Black-footed Albatross", "Laysan Albatross")) +
+  geom_vline(xintercept = 2011,
+             linetype = "solid",
+             color = "goldenrod1",
+             size = 2) +
+  labs(title = "NOAA NMFS CA Cruise Albatross Observations",
+       x = "Cruise Year",
+       y = "Total Albatross Observed") +
+  guides(shape = FALSE) +
+  annotate("text",
+           label = "Tōhoku tsunami",
+           x = 2014.5,
+           y = 425,
+           color = "black",
+           size = 4) +
+  theme_minimal() +
+  theme(legend.background = element_blank(),
+        legend.position = "bottom")
+
+nmfs_plot
+```
+
+```{r}
+
+band_count <- albie_all_band %>% 
+  group_by(species, event_year) %>% 
+  summarise(total = sum(count))
+
+```
+
+```{r}
+band_plot <- ggplot(band_count, aes(x = event_year, y = total, group = species)) +
+  geom_point(aes(color = species,
+                 shape = species)) +
+  geom_line(aes(color = species)) +
+  scale_color_manual(name = "Albatross species",
+                     values = c("#9E7E8C", "#39ACB1"),
+                     labels = c("Black-footed Albatross", "Laysan Albatross")) +
+  geom_vline(xintercept = 2011,
+             linetype = "solid",
+             color = "goldenrod1",
+             size = 2) +
+  guides(shape = FALSE) +
+  annotate("text",
+           label = "Tōhoku tsunami",
+           x = 2014.5,
+           y = 4700,
+           color = "black",
+           size = 4) +
+  labs(title = "Hawaii & California Albatross Banding Effort",
+       x = "Year",
+       y = "Albatross Banded",
+       color = "Species") +
+  theme_minimal() +
+  theme(legend.background = element_blank(),
+        legend.position = "bottom")  
+  
+band_plot
+```
 
 
