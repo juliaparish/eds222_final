@@ -229,7 +229,7 @@ nmfs_plot
 
 ```{r}
 ggsave("images/nmfs_plot.png",
-       width = 4,
+       width = 6,
        height = 4,
        units = "in",
        bg = "white",
@@ -244,7 +244,7 @@ band_count <- albie_all_band %>%
 
 ```
 
-```{r}
+```{r warning=FALSE}
 #plot banding data
 
 band_plot <- ggplot(band_count, aes(x = year, y = total, group = species)) +
@@ -278,7 +278,7 @@ band_plot
 
 ```{r}
 ggsave("images/band_plot.png",
-       width = 4,
+       width = 6,
        height = 4,
        units = "in",
        bg = "white",
