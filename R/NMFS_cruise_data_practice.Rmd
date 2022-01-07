@@ -1,5 +1,5 @@
 ---
-title: "final"
+title: "Scratch pad for Final project"
 output: html_document
 ---
 
@@ -145,20 +145,6 @@ albie_sf <- st_as_sf(albie_all_band,
                        coords = c("lon_dd","lat_dd"), 
                        crs = 4326)
 
-```
-
-```{r}
-# bbox_ca <- searchbbox("California")
-# 
-# osm.plot(bbox_ca)
-```
-
-```{r}
-# tmap_mode("view")
-# tm_shape(nmfs_sf) +
-#   tm_dots("species") +
-#   #tm_basemap("Stamen.Terrain") +
-#   bmaps.plot(bbox_ca)
 ```
 
 ```{r}
