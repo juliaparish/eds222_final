@@ -7,14 +7,14 @@ The goal of this project is to explore an environmental data science question fo
 This blog post is a write up summarizing in text and with figures and/or tables your question, the data you have collected, your analysis plan, and your results. Your target audience should be other quantitative scientists and practitioners familiar with the basics of statistics and data science, but not necessarily experts in environmental science or the details of the methods studied in this course.<br>
 Please email me your blog post in PDF format and as a live link.<br>
 
-*Some guidelines for the blog post:*
+*Some guidelines for the blog post:*<br>
 • 3-5 pages in length, including figures, tables, captions, and references list<br>
 • 1-3 tables or figures, each carefully labeled and captioned so that they are easily interpretable<br>
 • Include scientific references when applicable<br>
 • Include links to the underlying data you use. If your data cannot be shared publicly, note this in a short “data availability” statement at the end of your post.<br>
 • [Recommended, but optional] If you can, include a link to a repository with your replication code. I will not evaluate your code as part of your grade, but this is good practice for reproducibility and transparency and will make your blog post more exciting to the outside world.<br>
 
-**General guidelines:**
+**General guidelines:**<br>
 • *Motivate your question. Why is this important?* Is there existing evidence on this question? If so, why is it inconclusive? If not, why not?<br>
 • *Describe your data. Where did you access it?* What are its spatial and temporal features? What are its limitations? What do you know about the sampling strategy and what biases that may introduce? If helpful, you can use a histogram, scatterplot, or summary statistics table to describe your data.<br>
 • *Clearly describe your analysis plan.* What is your analysis plan? Why did you choose this analysis, given your data and question? What are the limitations?<br>
