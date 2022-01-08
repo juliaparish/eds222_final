@@ -282,37 +282,39 @@ pop_mean_table
 
 ```
 
-$$ \text{Albatross population trend}_i = \beta_0 + \beta_1 \text{time since tsunami}_i + \varepsilon_i $$
-
+$$ \text{Albatross population trend}_i = \beta_0 + \beta_1 \text{post tsunami}_i + \varepsilon_i $$
 $$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$
 
-```{r}
 
-bfal_lm <- summary(lm(total ~ year, data = bfal_post)) %>% 
-  #xtable() %>% 
-  #kable(caption = "Simple Linear Regression - Albatross population post-tsunami") #%>% 
-  #save_kable(file = "bfal_lm.png")
-  tab_model(title = "Simple Linear Regression - Black-footed Albatross population post-tsunami",
-    file = "bfal_lm_tab.html") 
-  
-bfal_lm 
+$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$
+$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{tsunami event} + \varepsilon_i $$
+
+```{r}
+bothspecies_df <- bind_rows(bfal_band, laal_band)
 ```
 
 ```{r}
-
-laal_lm <- summary(lm(total ~ year, data = laal_post)) %>% 
-  #xtable() %>% 
-  #kable(caption = "Simple Linear Regression - Albatross population post-tsunami") #%>% 
-  #save_kable(file = "bfal_lm.png")
-  tab_model(title = "Simple Linear Regression - Laysan Albatross population post-tsunami",
-    file = "laal_lm_tab.html") 
-  
-laal_lm 
+bothspecies_df$t_event <- as.factor(bothspecies_bands$t_event)
 ```
 
 ```{r}
-# save simple linear regressions to png
+post_tsunami_simple_mod <- lm(total ~ t_event, data = bothspecies_df) %>%
+  summary()
+```
 
-webshot("bfal_lm_tab.html", "bfal_lm_tab.png")
+```{r}
+tab_model(post_tsunami_simple_mod ,
+          pred.labels = c("Intercept (avg. albatross banded pre-tsunami", "Avg. banded albatross count post-tsunami)"),
+          string.ci = "Conf. Int (95%)",
+          string.p = "P-value",
+          title = "Tbl #. Simple Linear Regression Model Results for Banded Albatross in Hawaii & California",
+          digits = 4)
+```
+
+
+```{r}
+# interaction
+interaction_model <- lm(total ~ t_event + species + t_event:species, data = bothspecies_bands) %>% 
+  summary()
 ```
 
