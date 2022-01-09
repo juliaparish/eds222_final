@@ -24,6 +24,7 @@ library(janitor)
 library(grid)
 library(sf)
 library(ggmap)
+library(ggrepel)
 library(kableExtra)
 library(sjPlot)
 
@@ -38,7 +39,7 @@ data.frame("Phase" = c(1:7),
                              "Conduct regression analysis",
                              "Interpret results",
                              "Conclusion")) %>% 
-  kable(caption = "Analysis Plan Outline") %>%
+  kable(caption = "Table 1: Analysis Plan Outline") %>%
   kable_paper(full_width = FALSE) %>%
   kable_styling(latex_options = "striped",
                 font_size = 15) %>% 
@@ -102,6 +103,13 @@ hawaii_map <- get_map(hawaii,
                       maptype = "satellite")
 ```
 
+```{r nwhi points}
+nwhi_points <- data.frame(lon = c(-161.9, -164.11, -166.05, -167.99, -170.65, -171.68, -174, -175, -176.5, -177),
+                          lat = c(23.06, 22.84, 23.94, 24.99, 24.8, 25.81, 25.6, 26.2, 26.5, 28.8),
+                          name = c("Nihoa", "Mokumanamana", "Lalo", "Onunui", "Kamokuokamohoalii", "Kamole", "Kapou", "Manawai", "Kuaihelani", "Holaniku"))
+
+```
+
 ```{r create albatross map}
 albie_map <- ggmap(hawaii_map) +
   geom_point(aes(x = lon_dd, y = lat_dd, color = species_name),
@@ -112,7 +120,13 @@ albie_map <- ggmap(hawaii_map) +
                      values = c("#9E7E8C", "#39ACB1"),
                      labels = c("Black-footed Albatross", "Laysan Albatross"),
                      guide = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-  labs(title = "Banded Albatross Species in the Hawaiian Archipelago",
+  geom_label_repel(data = nwhi_points,
+                   aes(x = lon, y = lat, label = name),
+                   size = 2,
+                   vjust = 0.5,
+                   hjust = 0.9,
+                   alpha = 0.8) +
+  labs(title = "Figure 1: Banded Albatross Species in the Hawaiian Archipelago",
         subtitle = "1996 - 2021",
         x = "Longitude",
         y = "Latitude") +
@@ -127,7 +141,7 @@ albie_map
 ```
 
 ```{r}
-ggsave(here("images/albatross_map.png"), plot = albie_map)
+ggsave(here("images/fig1_albatross_map.png"), plot = albie_map)
 ```
 
 ```{r}
@@ -160,7 +174,7 @@ albie_count_plot <- ggplot(band_count, aes(x = year, y = total, group = species)
            y = 4700,
            color = "black",
            size = 4) +
-  labs(title = "Albatross Count Based On Band Data",
+  labs(title = "Figure 2: Hawaii Albatross Count Based On Band Data",
        subtitle = "Data source: USGS Bird Banding Lab",
        x = "Year",
        y = "Albatross Banded",
@@ -173,7 +187,7 @@ albie_count_plot
 ```
 
 ```{r}
-ggsave(here("images/species_count_plot.png"),
+ggsave(here("images/fig2_species_count_plot.png"),
        plot = albie_count_plot,
        width = 6,
        height = 4,
@@ -231,7 +245,6 @@ laal_pop_params <- laal_count %>%
 
 pop_params_summary <- bind_rows(bfal_pop_params, laal_pop_params) 
 
-pop_params_summary
 ```
 
 ```{r}
@@ -239,16 +252,16 @@ pop_params_table <- knitr::kable(pop_params_summary,
                                  digits = 0,
                                  col.names = c('Albatross Species', 'Population Mean', 'Population Median', 'Population Max'),
                                  align = "lccc",
-                                 caption = "Hawaii Albatross Population Summary 1996 - 2021") %>%
+                                 caption = "Table 2: Hawaii Albatross Population Summary 1996 - 2021") %>%
   kable_paper(full_width = FALSE) %>%
   kable_styling(latex_options = "striped",
                 font_size = 15) %>% 
   column_spec(1, bold = T) %>%
-  row_spec(0, bold = T, color = "black")
+  row_spec(0, bold = T, color = "black") #%>% 
+  # save_kable(here("images/pop_params.png"))
 
 pop_params_table 
 ```
-
 
 ```{r}
 # filter species by pre and post tsunami event
@@ -285,7 +298,7 @@ pop_mean <- tibble(species = c("BFAL", "LAAL"),
 
 pop_mean_table <- knitr::kable(pop_mean,
                                col.names = c('Species', 'Pre_Pop_Mean', 'Post_Pop_Mean'),
-                               caption = "Albatross Population Means Pre- & Post- Tōhoku Tsunami") %>% 
+                               caption = "Table 3: Hawaii Albatross Count Means Pre- & Post- Tōhoku Tsunami") %>% 
   kable_classic(full_width = F, html_font = "Cambria") #%>% 
   #save_kable(file = "albie_mean_pops.png",
              #zoom = 1.5)
@@ -308,7 +321,7 @@ bfal_qqplot <- ggplot(bfal_count) +
             color = "grey") +
   xlab("Normal distribution quantiles") +
   ylab("Sample quantiles") +
-  labs(title = "Black-footed Albatross (BFAL) QQ Plot") +
+  labs(title = "Figure 3: Black-footed Albatross (BFAL) QQ Plot") +
   theme_minimal() +
   theme(line = element_blank(),
         panel.grid = element_blank(),
@@ -321,7 +334,7 @@ bfal_qqplot
 ```
 
 ```{r}
-ggsave(here("images/bfal_qqplot.png"),
+ggsave(here("images/fig3_bfal_qqplot.png"),
        width = 4,
        height = 4,
        units = "in",
@@ -339,7 +352,7 @@ laal_qqplot <- ggplot(laal_count) +
             color = "grey") +
   xlab("Normal distribution quantiles") +
   ylab("Sample quantiles") +
-  labs(title = "Laysan Albatross (LAAL) QQ Plot") +
+  labs(title = "Figure 4: Laysan Albatross (LAAL) QQ Plot") +
   theme_minimal() +
   theme(line = element_blank(),
         panel.grid = element_blank(),
@@ -351,7 +364,7 @@ laal_qqplot
 ```
 
 ```{r}
-ggsave(here("images/laal_qqplot.png"),
+ggsave(here("images/fig4_laal_qqplot.png"),
        width = 4,
        height = 4,
        units = "in",
@@ -372,7 +385,7 @@ tab_model(post_tsunami_simple_mod ,
           pred.labels = c("Intercept (mean albatross count pre-tsunami)", "Avg. banded albatross count post-tsunami"),
           string.ci = "Conf. Int (95%)",
           string.p = "P-value",
-          title = "Tbl #. Simple Linear Regression Model for Banded Albatross in Hawaii",
+          title = "Table 4: Simple Linear Regression Model for Banded Albatross in Hawaii",
           digits = 4)
 ```
 
@@ -383,7 +396,6 @@ $$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{tsunami event} + \beta_2 \
 interaction_model <- lm(total ~ t_event + species + t_event:species, data = band_count) %>% 
   summary()
 
-interaction_model
 ```
 
 ```{r}
@@ -391,6 +403,6 @@ tab_model(interaction_model,
           pred.labels = c("Intercept (mean BFAL count pre-tsunami)", "Mean BFAL count post-tsunami", "Mean LAAL count pre-tsunami", "Mean LAAL count compared to BFAL count post-tsunami"),
           string.ci = "Conf. Int (95%)",
           string.p = "P-value",
-          title = "Tbl #. Multiple Linear Regression Model Results for Banded Albatross in Hawaii",
+          title = "Table 5: Multiple Linear Regression Model Results for Banded Albatross in Hawaii",
           digits = 4)
 ```
