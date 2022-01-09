@@ -1,53 +1,55 @@
 ---
 title: "EDS222_final_proj"
-output: html_document
----
-
----
-title: "final"
-output: html_document
+author: "Julia Parish"
+date: "2022-02-01"
+output: 
+  html_document:
+    theme: flatly
+    code_folding: show
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r }
+```{r, message = FALSE}
 library(tidyverse)
 library(here)
 library(janitor)
-library(lubridate)
 library(sf)
+
+library(kableExtra)
+library(sjPlot)
+
 library(mapview)
 library(tmap)
-library(leaflet)
-library(rosm)
-library(prettymapr)
-library(kableExtra)
-library(xtable)
-library(sjPlot)
-library(webshot)
-library(gt)
+library(spData)
 library(ggmap)
+
 ```
 
+# Tōhoku Tsunami Impact on Albatross Populations in the Pacific
 
-```{r, band data}
+```{r band data}
 # read in banding data
 albie_band <- read_csv(here("data", "laal_bfal_ca_hi_bbl2021.csv")) #both bfal and laal banding data for CA and HI
 ```
 
-```{r}
+```{r explore data}
 # explore banding data
-# unique(albie_all_band$event_year)
-# head(albie_all_band)
-#unique(albie_all_band$species_name)
-#unique(albie_all_band$event_date)
-#class(albie_all_band$event_date)
+
+# head(albie_band)
+# unique(albie_band$event_year)
+# unique(albie_band$species_name)
+# unique(albie_band$event_date)
+# unique(albie_band$iso_subdivision)
+# class(albie_band$event_date)
+# class(albie_band$event_year)
 ```
 
-
-```{r}
+```{r tidy banding data}
 albie_band <- albie_band %>% 
   mutate(species = case_when(
     species_scientific_name == "Phoebastria immutabilis" ~ "LAAL",
@@ -58,9 +60,15 @@ albie_band <- albie_band %>%
   mutate(count = as.numeric("1")) %>% 
   relocate(count, .after = species_scientific_name) %>% 
   mutate(event_date = as.Date(event_date, "%m/%d/%y")) %>% 
-  rename(year = event_year) #%>% 
-  #select(c(-other_bands, -who_obtained_code))
+  rename(year = event_year) %>% 
+  filter(albie_band$iso_subdivision == "US-HI") %>% 
+  select(c(-other_bands, -who_obtained_code, -original_band, -event_type))
  
+```
+
+```{r explore tidy band data}
+# unique(albie_band$iso_subdivision)
+# class(albie_band$year)
 ```
 
 ```{r}
@@ -71,15 +79,41 @@ albie_sf <- st_as_sf(albie_band,
 
 ```
 
-```{r}
-# mapview(albie_sf,
-#         map.types = c("Stamen.Terrain"),
-#         layer.name = "Laysan and Black-footed albatross",
-#         col.regions = "#F757E1")
+```{r create HI map}
+# bounding box for Hawaii  lowerleftlon, lowerleftlat, upperrightlon, upperrightlat
+hawaii <- c(-178, 18.5, -154, 28.9)
 
-tm_shape(albie_sf) +
-  tm_dots("elev") +
-  tm_layout(title = "Figure 4. Distribution of break-ins by elevation")
+hawaii_map <- get_map(hawaii,
+                      source = "google",
+                      maptype = "satellite")
+```
+
+```{r create albatross map}
+albie_map <- ggmap(hawaii_map) +
+  geom_point(aes(x = lon_dd, y = lat_dd, color = species_name),
+             data = albie_band,
+             size = 0.5,
+             alpha = 0.25) +
+  scale_color_manual(name = "Albatross species",
+                     values = c("#9E7E8C", "#39ACB1"),
+                     labels = c("Black-footed Albatross", "Laysan Albatross"),
+                     guide = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+   labs(title = "Banded Albatross Species in the Hawaiian Archipelago",
+        subtitle = "1996 - 2021",
+        x = "Longitude",
+        y = "Latitude") +
+  theme(legend.title = element_text(size=12, color = "black", face="bold"),
+           legend.justification=c(0,1), 
+           legend.position=c(0.74, 0.95),
+           legend.background = element_blank(),
+           legend.key = element_blank())
+
+albie_map
+ 
+```
+
+```{r}
+ggsave(here("images/albatross_map.png"), plot = albie_map)
 ```
 
 ```{r}
@@ -90,16 +124,17 @@ band_count <- albie_band %>%
 
 ```
 
-```{r warning=FALSE}
-#plot banding data
+```{r plot count by species, warning=FALSE}
+#plot banding count data
 
-band_plot <- ggplot(band_count, aes(x = year, y = total, group = species)) +
+albie_count_plot <- ggplot(band_count, aes(x = year, y = total, group = species)) +
   geom_point(aes(color = species,
                  shape = species)) +
   geom_line(aes(color = species)) +
   scale_color_manual(name = "Albatross species",
                      values = c("#9E7E8C", "#39ACB1"),
-                     labels = c("Black-footed Albatross", "Laysan Albatross")) +
+                     labels = c("Black-footed Albatross", "Laysan Albatross"),
+                     guide = guide_legend(override.aes = list(shape = c(19, 17)))) +
   geom_vline(xintercept = 2011,
              linetype = "solid",
              color = "goldenrod1",
@@ -111,7 +146,8 @@ band_plot <- ggplot(band_count, aes(x = year, y = total, group = species)) +
            y = 4700,
            color = "black",
            size = 4) +
-  labs(title = "Hawaii & California Albatross Banding Effort",
+  labs(title = "Albatross Count Based On Band Data",
+       subtitle = "Data source: USGS Bird Banding Lab",
        x = "Year",
        y = "Albatross Banded",
        color = "Species") +
@@ -119,11 +155,12 @@ band_plot <- ggplot(band_count, aes(x = year, y = total, group = species)) +
   theme(legend.background = element_blank(),
         legend.position = "bottom")  
   
-band_plot
+albie_count_plot
 ```
 
 ```{r}
-ggsave("images/band_plot.png",
+ggsave(here("images/species_count_plot.png"),
+       plot = albie_count_plot,
        width = 6,
        height = 4,
        units = "in",
@@ -132,37 +169,31 @@ ggsave("images/band_plot.png",
 ```
 
 ```{r}
-# create two band count dataframes based on species
-bfal_band <- split(band_count, band_count$species)[[1]]
-laal_band <- split(band_count, band_count$species)[[2]]
+# create new column for year pre-tsunami (0) and post(1), 2011 = post since the tsuanmi occurred before banding season began
+band_count <- band_count %>% 
+  mutate(t_event = case_when(
+    year <= "2010" ~ "0",
+    year >= "2011" ~ "1")) 
+
+band_count$t_event <- as.factor(band_count$t_event)
 ```
 
-```{r}
-# create new column for year pre-tsunami (0) and post(1), 2011 = post as tsuanmi occurred before banding season began
-bfal_band <- bfal_band %>% 
-  mutate(t_event = case_when(
-    year <= "2010" ~ "0",
-    year >= "2011" ~ "1")
-    )
-  
-laal_band <- laal_band %>%
-  mutate(t_event = case_when(
-    year <= "2010" ~ "0",
-    year >= "2011" ~ "1")
-    )
-  
+```{r two species dfs}
+# create two band count dataframes based on species
+bfal_count <- split(band_count, band_count$species)[[1]]
+laal_count <- split(band_count, band_count$species)[[2]]
 ```
 
 ```{r}
 # explore population data 1996 - 2021
 
-bfal_mean <- round(mean(bfal_band$total), 2)
-bfal_min <- round(min(bfal_band$total), 2)
-bfal_max <- round(max(bfal_band$total), 2)
+bfal_mean <- round(mean(bfal_count$total), 2)
+bfal_min <- round(min(bfal_count$total), 2)
+bfal_max <- round(max(bfal_count$total), 2)
 
-laal_mean <- round(mean(laal_band$total), 2)
-laal_min <- round(min(laal_band$total), 2)
-laal_max <- round(max(laal_band$total), 2)
+laal_mean <- round(mean(laal_count$total), 2)
+laal_min <- round(min(laal_count$total), 2)
+laal_max <- round(max(laal_count$total), 2)
 
 ```
 
@@ -171,78 +202,18 @@ laal_max <- round(max(laal_band$total), 2)
 
 ```
 
-
-```{r}
-bfal_qqplot <- ggplot(bfal_band) +
-  geom_qq(aes(sample = total),
-          color = "#9E7E8C",
-          size = 3) +
-  geom_qq_line(aes(sample = total),
-            color = "grey") +
-  xlab("Normal distribution quantiles") +
-  ylab("Sample quantiles") +
-  labs(title = "Black-footed Albatross QQ Plot") +
-  theme_minimal() +
-  theme(line = element_blank(),
-        panel.grid = element_blank(),
-        strip.text = element_blank(),
-        axis.text.x = element_text(size = 10),
-        axis.text.y = element_text(size = 10),
-        legend.position = "none")
-bfal_qqplot  
-  
-```
-
-```{r}
-ggsave("images/bfal_qqplot.png",
-       width = 4,
-       height = 4,
-       units = "in",
-       bg = "white",
-       dpi = "print")
-```
-
-```{r}
-laal_qqplot <- ggplot(laal_band) +
-  geom_qq(aes(sample = total),
-          color = "#39ACB1",
-          size = 3) +
-  geom_qq_line(aes(sample = total),
-            color = "grey") +
-  xlab("Normal distribution quantiles") +
-  ylab("Sample quantiles") +
-  labs(title = "Laysan Albatross QQ Plot") +
-  theme_minimal() +
-  theme(line = element_blank(),
-        panel.grid = element_blank(),
-        strip.text = element_blank(),
-        axis.text.x = element_text(size = 10),
-        axis.text.y = element_text(size = 10),
-        legend.position = "none")
-laal_qqplot  
-```
-
-```{r}
-ggsave("images/laal_qqplot.png",
-       width = 4,
-       height = 4,
-       units = "in",
-       bg = "white",
-       dpi = "print")
-```
-
 ```{r}
 # filter species by pre and post tsunami event
-bfal_pre <- bfal_band %>% 
+bfal_pre <- bfal_count %>% 
   filter(year %in% c(2002:2010))
 
-bfal_post <- bfal_band %>% 
+bfal_post <- bfal_count %>% 
   filter(year %in% c(2011:2020))
 
-laal_pre <- laal_band %>% 
+laal_pre <- laal_count %>% 
   filter(year %in% c(2002:2010))
 
-laal_post <- laal_band %>% 
+laal_post <- laal_count%>% 
   filter(year %in% c(2011:2020))
 
 ```
@@ -282,23 +253,75 @@ pop_mean_table
 
 ```
 
-$$ \text{Albatross population trend}_i = \beta_0 + \beta_1 \text{post tsunami}_i + \varepsilon_i $$
-$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$
-
-
-$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$
-$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{tsunami event} + \varepsilon_i $$
-
 ```{r}
-bothspecies_df <- bind_rows(bfal_band, laal_band)
+bfal_qqplot <- ggplot(bfal_count) +
+  geom_qq(aes(sample = total),
+          color = "#9E7E8C",
+          size = 3) +
+  geom_qq_line(aes(sample = total),
+            color = "grey") +
+  xlab("Normal distribution quantiles") +
+  ylab("Sample quantiles") +
+  labs(title = "Black-footed Albatross QQ Plot") +
+  theme_minimal() +
+  theme(line = element_blank(),
+        panel.grid = element_blank(),
+        strip.text = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.position = "none")
+bfal_qqplot  
+  
 ```
 
 ```{r}
-bothspecies_df$t_event <- as.factor(bothspecies_bands$t_event)
+ggsave(here("images/bfal_qqplot.png"),
+       width = 4,
+       height = 4,
+       units = "in",
+       bg = "white",
+       dpi = "print")
 ```
 
 ```{r}
-post_tsunami_simple_mod <- lm(total ~ t_event, data = bothspecies_df) %>%
+laal_qqplot <- ggplot(laal_count) +
+  geom_qq(aes(sample = total),
+          color = "#39ACB1",
+          shape = 17,
+          size = 3) +
+  geom_qq_line(aes(sample = total),
+            color = "grey") +
+  xlab("Normal distribution quantiles") +
+  ylab("Sample quantiles") +
+  labs(title = "Laysan Albatross QQ Plot") +
+  theme_minimal() +
+  theme(line = element_blank(),
+        panel.grid = element_blank(),
+        strip.text = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.position = "none")
+laal_qqplot  
+```
+
+```{r}
+ggsave(here("images/laal_qqplot.png"),
+       width = 4,
+       height = 4,
+       units = "in",
+       bg = "white",
+       dpi = "print")
+```
+
+
+
+$$ \text{Albatross population trend}_i = \beta_0 + \beta_1 \text{post tsunami}_i + \varepsilon_i $$ $$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$
+
+$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$ $$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{tsunami event} + \varepsilon_i $$
+
+
+```{r}
+post_tsunami_simple_mod <- lm(total ~ t_event, data = band_count) %>%
   summary()
 ```
 
@@ -311,10 +334,8 @@ tab_model(post_tsunami_simple_mod ,
           digits = 4)
 ```
 
-
 ```{r}
 # interaction
-interaction_model <- lm(total ~ t_event + species + t_event:species, data = bothspecies_bands) %>% 
+interaction_model <- lm(total ~ t_event + species + t_event:species, data = band_count) %>% 
   summary()
 ```
-
