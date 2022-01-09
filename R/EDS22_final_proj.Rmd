@@ -1,36 +1,50 @@
 ---
-title: "EDS222_final_proj"
+title: "Regression Analysis of the Impact of the Tōhoku Tsunami Impact on Albatross Populations in the Hawaii"
 author: "Julia Parish"
 date: "2022-02-01"
 output: 
   html_document:
     theme: flatly
-    code_folding: show
+    code_folding: hide
     toc: true
     toc_float: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE, 
+                      warning = FALSE, 
+                      include = TRUE)
 ```
 
 ```{r, message = FALSE}
 library(tidyverse)
 library(here)
 library(janitor)
+library(grid)
 library(sf)
-
+library(ggmap)
 library(kableExtra)
 library(sjPlot)
 
-library(mapview)
-library(tmap)
-library(spData)
-library(ggmap)
-
 ```
 
-# Tōhoku Tsunami Impact on Albatross Populations in the Pacific
+```{r}
+data.frame("Phase" = c(1:7),
+           "Description" = c("Identify research question",
+                             "Collect data",
+                             "Describe data",
+                             "Visualize data",
+                             "Conduct regression analysis",
+                             "Interpret results",
+                             "Conclusion")) %>% 
+  kable(caption = "Analysis Plan Outline") %>%
+  kable_paper(full_width = FALSE) %>%
+  kable_styling(latex_options = "striped",
+                font_size = 15) %>% 
+  column_spec(1, bold = T) %>%
+  row_spec(0, bold = T, color = "black")
+```
 
 ```{r band data}
 # read in banding data
@@ -80,7 +94,7 @@ albie_sf <- st_as_sf(albie_band,
 ```
 
 ```{r create HI map}
-# bounding box for Hawaii  lowerleftlon, lowerleftlat, upperrightlon, upperrightlat
+# bounding box for Hawaii
 hawaii <- c(-178, 18.5, -154, 28.9)
 
 hawaii_map <- get_map(hawaii,
@@ -98,7 +112,7 @@ albie_map <- ggmap(hawaii_map) +
                      values = c("#9E7E8C", "#39ACB1"),
                      labels = c("Black-footed Albatross", "Laysan Albatross"),
                      guide = guide_legend(override.aes = list(size = 3, alpha = 1))) +
-   labs(title = "Banded Albatross Species in the Hawaiian Archipelago",
+  labs(title = "Banded Albatross Species in the Hawaiian Archipelago",
         subtitle = "1996 - 2021",
         x = "Longitude",
         y = "Latitude") +
@@ -133,7 +147,7 @@ albie_count_plot <- ggplot(band_count, aes(x = year, y = total, group = species)
   geom_line(aes(color = species)) +
   scale_color_manual(name = "Albatross species",
                      values = c("#9E7E8C", "#39ACB1"),
-                     labels = c("Black-footed Albatross", "Laysan Albatross"),
+                     labels = c("Black-footed Albatross (BFAL)", "Laysan Albatross (LAAL)"),
                      guide = guide_legend(override.aes = list(shape = c(19, 17)))) +
   geom_vline(xintercept = 2011,
              linetype = "solid",
@@ -200,7 +214,41 @@ laal_max <- round(max(laal_count$total), 2)
 ```{r}
 # table with mean, min, max for both albatross species
 
+bfal_pop_params <- bfal_count %>% 
+  summarise(mean = mean(bfal_count$total),
+            med = median(bfal_count$total),
+            max = max(bfal_count$total))
+
+laal_pop_params <- laal_count %>% 
+  summarise(mean = mean(laal_count$total),
+            med = median(laal_count$total),
+            max = max(laal_count$total))
+
 ```
+
+```{r pop params summary df}
+#combine the two population params data sets with bind_rows
+
+pop_params_summary <- bind_rows(bfal_pop_params, laal_pop_params) 
+
+pop_params_summary
+```
+
+```{r}
+pop_params_table <- knitr::kable(pop_params_summary,
+                                 digits = 0,
+                                 col.names = c('Albatross Species', 'Population Mean', 'Population Median', 'Population Max'),
+                                 align = "lccc",
+                                 caption = "Hawaii Albatross Population Summary 1996 - 2021") %>%
+  kable_paper(full_width = FALSE) %>%
+  kable_styling(latex_options = "striped",
+                font_size = 15) %>% 
+  column_spec(1, bold = T) %>%
+  row_spec(0, bold = T, color = "black")
+
+pop_params_table 
+```
+
 
 ```{r}
 # filter species by pre and post tsunami event
@@ -237,14 +285,12 @@ pop_mean <- tibble(species = c("BFAL", "LAAL"),
 
 pop_mean_table <- knitr::kable(pop_mean,
                                col.names = c('Species', 'Pre_Pop_Mean', 'Post_Pop_Mean'),
-                               caption = "Albatross Population Means Pre & Post Tōhoku Tsunami") %>% 
+                               caption = "Albatross Population Means Pre- & Post- Tōhoku Tsunami") %>% 
   kable_classic(full_width = F, html_font = "Cambria") #%>% 
   #save_kable(file = "albie_mean_pops.png",
              #zoom = 1.5)
 
 pop_mean_table
-
-
 ```
 
 ```{r}
@@ -262,7 +308,7 @@ bfal_qqplot <- ggplot(bfal_count) +
             color = "grey") +
   xlab("Normal distribution quantiles") +
   ylab("Sample quantiles") +
-  labs(title = "Black-footed Albatross QQ Plot") +
+  labs(title = "Black-footed Albatross (BFAL) QQ Plot") +
   theme_minimal() +
   theme(line = element_blank(),
         panel.grid = element_blank(),
@@ -293,7 +339,7 @@ laal_qqplot <- ggplot(laal_count) +
             color = "grey") +
   xlab("Normal distribution quantiles") +
   ylab("Sample quantiles") +
-  labs(title = "Laysan Albatross QQ Plot") +
+  labs(title = "Laysan Albatross (LAAL) QQ Plot") +
   theme_minimal() +
   theme(line = element_blank(),
         panel.grid = element_blank(),
@@ -314,11 +360,7 @@ ggsave(here("images/laal_qqplot.png"),
 ```
 
 
-
-$$ \text{Albatross population trend}_i = \beta_0 + \beta_1 \text{post tsunami}_i + \varepsilon_i $$ $$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$
-
-$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{count_year-1} + \beta_2 \text{tsunami event}_i + \varepsilon_i $$ $$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{tsunami event} + \varepsilon_i $$
-
+$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{tsunami event}  + \varepsilon_i $$ 
 
 ```{r}
 post_tsunami_simple_mod <- lm(total ~ t_event, data = band_count) %>%
@@ -327,15 +369,28 @@ post_tsunami_simple_mod <- lm(total ~ t_event, data = band_count) %>%
 
 ```{r}
 tab_model(post_tsunami_simple_mod ,
-          pred.labels = c("Intercept (avg. albatross banded pre-tsunami", "Avg. banded albatross count post-tsunami)"),
+          pred.labels = c("Intercept (mean albatross count pre-tsunami)", "Avg. banded albatross count post-tsunami"),
           string.ci = "Conf. Int (95%)",
           string.p = "P-value",
-          title = "Tbl #. Simple Linear Regression Model Results for Banded Albatross in Hawaii & California",
+          title = "Tbl #. Simple Linear Regression Model for Banded Albatross in Hawaii",
           digits = 4)
 ```
+
+$$ \text{Albatross count}_i = \beta_0 + \beta_1 \text{tsunami event} + \beta_2 \text{albatross species} + \beta_3\text{tsunami event:species} + \varepsilon_i $$
 
 ```{r}
 # interaction
 interaction_model <- lm(total ~ t_event + species + t_event:species, data = band_count) %>% 
   summary()
+
+interaction_model
+```
+
+```{r}
+tab_model(interaction_model,
+          pred.labels = c("Intercept (mean BFAL count pre-tsunami)", "Mean BFAL count post-tsunami", "Mean LAAL count pre-tsunami", "Mean LAAL count compared to BFAL count post-tsunami"),
+          string.ci = "Conf. Int (95%)",
+          string.p = "P-value",
+          title = "Tbl #. Multiple Linear Regression Model Results for Banded Albatross in Hawaii",
+          digits = 4)
 ```

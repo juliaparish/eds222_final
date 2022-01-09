@@ -5,7 +5,7 @@ The goal of this project is to explore an environmental data science question fo
 
 **Technical blog post**
 This blog post is a write up summarizing in text and with figures and/or tables your question, the data you have collected, your analysis plan, and your results. Your target audience should be other quantitative scientists and practitioners familiar with the basics of statistics and data science, but not necessarily experts in environmental science or the details of the methods studied in this course.<br>
-Please email me your blog post in PDF format and as a live link.<br>
+Email  blog post in PDF format and as a live link to professor.<br>
 
 *Some guidelines for the blog post:*<br>
 • 3-5 pages in length, including figures, tables, captions, and references list<br>
