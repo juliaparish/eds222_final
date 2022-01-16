@@ -2,9 +2,12 @@
 title: "EDS222_Final_Project"
 author: "Julia Parish"
 date: "2022/01/15"
+bibliography: bibliography.bib
 output:
   pdf_document:
     toc: yes
+    includes:
+      in_header: my_header.tex
     latex_engine: xelatex
   html_document: default
   
@@ -16,21 +19,10 @@ knitr::opts_chunk$set(echo = TRUE,
                       warning = FALSE, 
                       include = TRUE)
 
+options(scipen = 999)
 options(tinytex.verbose = TRUE)
 ```
 
-```{r, message = FALSE}
-library(tidyverse)
-library(here)
-library(janitor)
-library(grid)
-library(sf)
-library(ggmap)
-library(ggrepel)
-library(kableExtra)
-library(sjPlot)
-
-```
 ```{r, include = FALSE}
 library(tidyverse)
 library(here)
@@ -44,9 +36,6 @@ library(sjPlot)
 
 ```
 
-This statistical analysis was completed as an assignment for my Master's program course, Environmental Data Science 222: Statistics for Environmental Data Science.
-
-
 ## Research Question
 
 *Were albatross populations impacted by the 2011 Tohoku tsunami event?*
@@ -57,17 +46,21 @@ Researchers estimated the Tohoku tsunami flooded between 26% - 52% of all Black-
 
 The Hawaiian archipelago is home to thousands of albatrosses. Albatrosses are an incredible bird species that have inspired authors, the fashion industry, and birders across the globe. They live to be over 65 years old, have the largest wingspan of any bird, are monogamous rearers, and have nest-site fidelity (meaning they return to the same nest location every year). Three species of albatross breed in Hawaii, the Laysan (*Phoebastria immutabilis*), Black-footed (*Phoebastria nigripes*), and Short-tailed (*Phoebastria albatrus*) albatross. Laysan albatrosses are listed as near threatened due to threats from climate change to their habitat and breeding grounds and long-line fishing operations [@Arata:2009]. The IUCN Red List of Threatened Species assessed the Black-footed albatross as near threatened in 2020 [@iucn:2020]. The Short-tailed albatross almost went extinct in the early 1900s due to feather hunting and is currently listed as an endangered species in the United States [@usfws:stal].
 
-```{r}
-data.frame("Common_name" = c("Black-foot albatross", "Laysan albatross", "Short-tailed albatross"),
-           "Hawaiian_name" = c("Kaʻupu", "Mōlī", "Makalena or Kaʻupuakea"),
+```{r, include=FALSE}
+names_table <- data.frame("Common_name" = c("Black-footed albatross", "Laysan albatross", "Short-tailed albatross"),
            "Species_code" = c("BFAL","LAAL", "STAL"),
+           "Hawaiian_name" = c("Kaʻupu", "Mōlī", "Makalena|Kaʻupuakea"),
            "Scientific_name" = c("Phoebastria nigripes", "Phoebastria immutabilis", "Phoebastria albatrus")) %>% 
   kable(caption = "Hawaiian Albatross Species Names") %>%
   kable_paper(full_width = FALSE) %>%
   kable_styling(latex_options = "striped",
-                font_size = 15) %>% 
+                font_size = 12) %>% 
   column_spec(1, bold = T) %>%
-  row_spec(0, bold = T, color = "black")
+  row_spec(0, bold = T, color = "black") 
+```
+
+```{r}
+names_table
 ```
 
 Papahanaumokuakea, also known as the Northwestern Hawaiian Islands, are comprised of atolls, reefs, and pinnacles, and are where 95% of all Black-footed albatross and 99% of Laysan albatross nest [@Arata:2009]. These low-lying islands are at extreme risk of inundation from tsunamis [@Reynolds:2017]. On March 11, 2011, a 9.0 earthquake hit the Tōhoku region of Japan. The earthquake lasted over 6 minutes, creating a tsunami that impacted coastal areas and island nations throughout the Pacific region. Approximately 20,000 people lost their lives from the earthquake and resulting tsunami. The tsunami also killed or injured thousands of marine and terrestrial species. Many wildlife species found in the Papahanaumokuakea Marine National Monument (PMNM) were impacted by the Tohoku tsunami.
@@ -76,32 +69,36 @@ _**Note**: The Short-tailed albatross was not included in this analysis as there
 
 ## Analysis Plan
 
-This statistical analysis will be testing the hypothesis if the Tohoku tsunami impacted albatross populations in Hawaii. The table below outlines the phases of the analysis. 
+This statistical analysis will be testing the hypothesis if the Tohoku tsunami impacted albatross populations in Hawaii. Table 2 below outlines the phases of the analysis. 
 
-$$H_{0}: There\ was\ no\ impact\ of\ the\ Tohoku\ tsunami\ on\ albatross\ populations\ in\ Hawaii.$$
-$$H_{1}: There\ was\ an\ impact\ of\ the\ Tohoku\ tsunami\ on\ albatross\ populations\ in\ Hawaii.$$
+$$H_{0}: There\ has\ no\ impact\ of\ the\ Tohoku\ tsunami\ on\ albatross\ populations\ in\ Hawaii.$$
+$$H_{1}: There\ has\ an\ impact\ of\ the\ Tohoku\ tsunami\ on\ albatross\ populations\ in\ Hawaii.$$
 
-```{r}
-data.frame("Phase" = c(1:5),
+```{r, include=FALSE}
+plan <- data.frame("Phase" = c(1:5),
            "Description" = c("Identify research question",
                              "Collect data",
                              "Visualize data",
                              "Conduct regression analysis",
-                             "Conclusion & Future Research")) %>% 
+                             "Conclusion & Future Research")) %>%
   kable(caption = "Tohoku Tsunami Impact Analysis Plan Outline") %>%
   kable_paper(full_width = FALSE) %>%
   kable_styling(latex_options = "striped",
-                font_size = 15) %>% 
+                font_size = 12) %>% 
   column_spec(1, bold = T) %>%
   row_spec(0, bold = T, color = "black")
 ```
 
+```{r}
+plan
+```
+
 ## Collect Data
 
-After researching several data sources for albatross populations, I retrieved banding data for both Laysan and Black-footed albatross from the USGS Bird Banding Laboratory (BBL). The BBL has data on bird species for the past 100 years. The data contains information about an individual bird’s sex, age, health condition, and coordinates where the bird was banded. To access data from the BBL, it requires establishing an account on the [USGS Bird Banding Lab Bander Portal website](https://www.pwrc.usgs.gov/bbl/Bander_portal/login/main_login.php). Once you submit a data request, files will be available for download within 24 - 48 hours. I requested data for Black-footed and Laysan albatrosses in Hawaii between the years 1996 and 2020.
+After researching several data sources for albatross populations, I retrieved banding data for both Laysan and Black-footed albatross from the USGS Bird Banding Laboratory (BBL). The BBL has data on bird species for the past 100 years. The data contains information about an individual bird’s sex, age, health condition, and coordinates where the bird was banded. To access data from the BBL, it requires establishing an account on the [USGS Bird Banding Lab Bander Portal website](https://www.pwrc.usgs.gov/bbl/Bander_portal/login/main_login.php). Once you submit a data request, files will be available for download within 24 - 48 hours. I requested data for Black-footed and Laysan albatrosses in Hawaii between the years 1996 and 2020. Albatrosses reach reproductive maturity at nine years old on average. Data starting in 2019-2020 would reflect the cohort born in 2011 returning to nest and produce first young. 
 
 
-```{r band data}
+```{r band data, include=FALSE}
 # read in banding data
 albie_band <- read_csv(here("data", "laal_bfal_ca_hi_bbl2021.csv")) #both bfal and laal banding data for CA and HI
 ```
@@ -216,7 +213,7 @@ albie_map <- ggmap(hawaii_map) +
 albie_map
 ```
 
-
+In order to conduct an analysis on the albatross count data, I created a new column in the albatross banding data frame for the total count for albatrosses for each year between 1996 and 2020. 
 ```{r}
 
 band_count <- albie_band %>% 
@@ -226,6 +223,7 @@ band_count <- albie_band %>%
 ```
 
 #### Scatterplot
+
 To conduct analysis on the albatross banding data, it is necessary to create a total count of albatross banded for each year from 1996 to 2020. Once a total count was summed, I used a line and point plot to visualize albatross count annually and added a line to indicate with the Tohoku tsunami occurred (2011). This plot does suggest that there may be a negative effect from the Tohoku tsunami on albatross populations as the counts drop significantly after 2011. It also shows that the number of banded Black-footed albatrosses declined more than Laysan albatrosses after the tsunami. This trend may reflect the data that Reynolds et al. found as Black-footed albatrosses’ nest along coastal areas whereas Laysan albatrosses tend to nest more inland or at higher elevations on islands [@Reynolds:2017].  
 
 ```{r plot count by species, warning=FALSE, include=FALSE}
@@ -264,7 +262,6 @@ albie_count_plot <- ggplot(band_count, aes(x = year, y = total, group = species)
 ```{r}
 albie_count_plot
 ```
-
 
 ```{r, include=FALSE}
 # create new column for year pre-tsunami (0) and post(1), 2011 = post since the tsuanmi occurred before banding season began
@@ -315,10 +312,11 @@ laal_pop_params <- laal_count %>%
 pop_params_summary <- bind_rows(bfal_pop_params, laal_pop_params) 
 
 ```
-#### Population Means
+#### Population Means<br>
+
 I calculated the mean of banded albatross species between 1996 and 2020 as well as comparing the population means of each species pre- and post-tsunami event. These means indicate that more black-foot albatross is banded than Laysan albatross in Hawaii. This is an interesting data point as the total Laysan albatross population is larger than the Black-footed albatross population [@plan:2012]. The Laysan albatross actually holds the honor of having the largest population of all albatross species in the world (out of 21 species). Reviewing the two population mean tables also indicated that the number of banded albatrosses declined after the Tohoku tsunami.
 
-```{r}
+```{r, include=FALSE}
 pop_params_table <- knitr::kable(pop_params_summary,
                                  digits = 0,
                                  col.names = c('Albatross Species', 'Population Mean', 'Population Median', 'Population Max'),
@@ -326,10 +324,9 @@ pop_params_table <- knitr::kable(pop_params_summary,
                                  caption = "Hawaii Albatross Population Summary 1996 - 2021") %>%
   kable_paper(full_width = FALSE) %>%
   kable_styling(latex_options = "striped",
-                font_size = 15) %>% 
+                font_size = 11) %>% 
   column_spec(1, bold = T) %>%
-  row_spec(0, bold = T, color = "black") #%>% 
-  # save_kable(here("images/pop_params.png"))
+  row_spec(0, bold = T, color = "black")
 
 ```
 
@@ -373,8 +370,12 @@ pop_mean <- tibble(species = c("BFAL", "LAAL"),
 ```{r, include=FALSE}
 pop_mean_table <- kable(pop_mean, 
                         col.names = c('Species', 'Pre_Pop_Mean', 'Post_Pop_Mean'), 
-                        caption = "Hawaii Albatross Count Means") %>% 
-  kable_classic(full_width = F, html_font = "Cambria")  
+                        caption = "Population Means by Species Pre and Post Tsunami") %>% 
+  kable_paper(full_width = FALSE) %>%
+  kable_styling(latex_options = "striped",
+                font_size = 12) %>% 
+  column_spec(1, bold = T) %>%
+  row_spec(0, bold = T, color = "black")  
 
 ```
 
@@ -452,15 +453,10 @@ post_tsunami_simple_mod <- lm(total ~ t_event, data = band_count) %>%
 ```
 
 ```{r}
-tab_model(post_tsunami_simple_mod ,
-          pred.labels = c("Intercept (mean albatross count pre-tsunami)", "Avg. banded albatross count post-tsunami"),
-          string.ci = "Conf. Int (95%)",
-          string.p = "P-value",
-          title = "Table 4: Simple Linear Regression Model for Banded Albatross in Hawaii",
-          digits = 4)
+post_tsunami_simple_mod 
 ```
 
-The result of the simple regression shows that the intercept, 2616, is the mean number of banded albatrosses in Hawaii prior to the Tohoku tsunami event in 2011. The second predictor, or **β1**, is the mean banded albatrosses less than the intercept for any year after the tsunami. For any year after the tsunami, the mean count is 447. There is a 5% chance that the average banded albatross will be between 2,2274 and 2,959 prior to the Tohoku tsunami. The confidence interval post-tsunami shows that the mean will be -2,695 and -1,642 of the total albatrosses. Because the p-value is smaller than 0.05, the null hypothesis that there was no impact from the Tohoku tsunami on albatross counts is rejected. The data provides convincing evidence that there is a negative difference in mean number of albatrosses post-tsunami. There is a statistically significant difference, at the 5% significance level, in the count of albatrosses in Hawaii. This model explains 57% of the variation in the albatross count data around its mean.
+The result of the simple regression shows that the intercept, 2617, is the mean number of banded albatrosses in Hawaii prior to the Tohoku tsunami event in 2011. The second predictor, or **Beta1**, is indicated as t_event1. This is the mean banded albatrosses less the intercept for any year after the tsunami. The mean albatross count is 447 for any year after the tsunami, which is a marked difference from the average of 2617 prior to the tsunami. There is a 5% chance that the average banded albatross will be between 2,2274 and 2,959 prior to the Tohoku tsunami. The p-value is smaller than 0.05, so the null hypothesis that there was no impact from the Tohoku tsunami on albatross counts is rejected. The data provides convincing evidence that there is a negative difference in mean number of albatrosses post-tsunami. There is a statistically significant difference, at the 5% significance level, in the count of albatrosses in Hawaii. Based on the adjusted R-squared, this model explains 57% of the variation in the albatross count data around its mean.
 
 #### Multiple Linear Regression
 
@@ -476,20 +472,21 @@ interaction_model <- lm(total ~ t_event + species + t_event:species, data = band
 ```
 
 ```{r}
-tab_model(interaction_model,
-          pred.labels = c("Intercept (mean BFAL count pre-tsunami)", "Mean BFAL count post-tsunami", "Mean LAAL count pre-tsunami", "Mean LAAL count compared to BFAL count post-tsunami"),
-          string.ci = "Conf. Int (95%)",
-          string.p = "P-value",
-          title = "Table 5: Multiple Linear Regression Model Results for Banded Albatross in Hawaii",
-          digits = 4)
+interaction_model
 ```
 
-The result of the simple regression shows that the intercept, 3125, is the mean number of banded Black-footed albatrosses in Hawaii prior to the Tohoku tsunami event in 2011. The second predictor, or **β1**, is the mean banded Black-footed albatrosses less than the intercept for any year after the tsunami. For any year after the tsunami, the mean count is 472. The **β2** is the mean banded Laysan albatrosses less than the mean number of Black-footed albatross before the tsunami. The mean Laysan albatross count prior to the tsunami was 2,109. The **β3** is the mean Laysan albatrosses count post-tsunami compared to Black-footed albatrosses’ post-tsunami. There are, on average, 969 more Laysan albatrosses than Black-footed albatrosses for any year after the Tohoku tsunami. 
+The result of the simple regression shows that the intercept, 3125, is the mean number of banded Black-footed albatrosses in Hawaii prior to the Tohoku tsunami event in 2011. The second predictor, or **Beta1**, is indicated as t_event1. This is the mean banded Black-footed albatrosses less than the Intercept for any year after the tsunami. The mean count Black-footed albatross for any year after the tsunami is 472. This is a significant decline from the mean count of 3125 for any year before the tsunami. The **Beta2**, indicated as speciesLAAL, is the mean banded Laysan albatrosses less than the mean number of Black-footed albatross before the tsunami. The mean Laysan albatross count prior to the tsunami was 2,109. The **Beta3**, indicated as t_event1:speciesLAAL, is the mean Laysan albatrosses count post-tsunami compared to Black-footed albatrosses’ post-tsunami. This is also the interaction term. There are, on average, 969 more Laysan albatrosses than Black-footed albatrosses for any year after the Tohoku tsunami. 
 
-Since the p-values are smaller than 0.05, the null hypothesis that there was no impact from the Tohoku tsunami on albatross counts is rejected. The data provides convincing evidence that there is a negative difference in mean number of both Black-footed and Laysan albatrosses post-tsunami. There is a statistically significant difference, at the 5% significance level, in the count of albatross in Hawaii. The p-value is greater than 0.05 when comparing the mean Laysan albatross count post-tsunami to the Black-footed albatross. This predictor may indicate that Laysan albatross counts were not as significantly impacted by the tsunami as Black-footed albatross. This model explains 63% of the variation in the albatross count data around its mean.
+Since the p-values are smaller than 0.05, the null hypothesis that there was no impact from the Tohoku tsunami on albatross counts is rejected. The data provides convincing evidence that there is a negative difference in mean number of both Black-footed and Laysan albatrosses post-tsunami. There is a statistically significant difference, at the 5% significance level, in the count of albatross in Hawaii. The p-value is greater than 0.05 when comparing the mean Laysan albatross count post-tsunami to the Black-footed albatross. This predictor may indicate that Laysan albatross counts were not as significantly impacted by the tsunami as Black-footed albatross. The R-squared indicates that this model explains 63% of the variation in the albatross count data around its mean.
 
 ## Conclusion and Future Research
 
-In conclusion, the linear regression model predicts that there are significant negative relationships between the independent variable (years before and after tsunami) and the dependent variable (count of banded albatross). It was also found that a multiple regression with an interaction term based on the tsunami event impact of each albatross species is a better model fit. This analysis indicates that the Tohoku tsunami had a negative impact on albatross populations in Hawaii. 
+In conclusion, the linear regression model predicts that there are significant negative relationships between the independent variable (years before and after tsunami) and the dependent variable (count of banded albatross). It was also found that a multiple regression with an interaction term based on the tsunami event impact of each albatross species is a better model fit. This analysis suggests that the Tohoku tsunami had a negative impact on albatross populations in Hawaii. 
 
 For future analysis on the impact of the Tohoku tsunami, I would like to research what other variables may be influencing the number of albatrosses being banded by biologist in Hawaii each year. I have a suspension that there has been reduced banding effort throughout the archipelago since the tsunami, especially in 2020 due to the pandemic. I do not know why there would be a reduction in banding effort, but this may be a significant influence on the count data used for this analysis. I would also like to contact researchers in Hawaii to determine if there is more comprehensive census data for albatross. 
+
+## Source Code {.appendix}
+
+Find the source code for this blog post at https://github.com/juliaparish/eds222_final.
+
+## References {.appendix}
